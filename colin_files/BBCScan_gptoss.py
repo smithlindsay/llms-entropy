@@ -3,12 +3,12 @@ import torch
 from torch.utils.data import DataLoader
 import numpy as np
 import glob as glob
+import datasets
 import compute
-
-import json
 import argparse
 
 device = "cuda" if torch.cuda.is_available() else "cpu"
+# device = 'cpu'
 
 parser= argparse.ArgumentParser(description='analyze entropy')
 parser.add_argument('--savedir',type=str)
@@ -20,33 +20,42 @@ parser.add_argument('--nsamples',type=int)
 parser.add_argument('--seed', type=int,default=223291)
 parser.add_argument('--batchsize', type=int,default=2)
 parser.add_argument('--shapecut',type=int)
+parser.add_argument('--begin_year',type=int,default=2023) #gpt oss data goes to 2024
 args=parser.parse_args()
+
+begin_year = args.begin_year
 
 #load the model
 if args.revision=='skip':
-    model = AutoModelForCausalLM.from_pretrained(args.model, device_map='cuda')  
+    model = AutoModelForCausalLM.from_pretrained(args.model, device_map=device)  
 else:
-    model = AutoModelForCausalLM.from_pretrained(args.model, device_map='cuda',revision=args.revision)
+    model = AutoModelForCausalLM.from_pretrained(args.model, device_map=device, revision=args.revision)
 
-tokenizer = AutoTokenizer.from_pretrained(args.model,device_map='cuda')
+tokenizer = AutoTokenizer.from_pretrained(args.model,device_map=device)
 
-tokenizer.pad_token=tokenizer.eos_token
+tokenizer.pad_token = tokenizer.eos_token
 
 #load the text data
 
-files=['/scratch/gpfs/DATASETS/hugging_face/c4/en/c4-train.00217-of-01024.json',
-       '/scratch/gpfs/DATASETS/hugging_face/c4/en/c4-train.00023-of-01024.json',
-       '/scratch/gpfs/DATASETS/hugging_face/c4/en/c4-train.00345-of-01024.json']
+# gpt-oss has a knowledge cutoff of jun 2024
 
-data=[]
-for file in files:
-    with open(file,'r') as f:
-        data+=[json.loads(l) for l in f]
+ds = []
+for year in range(begin_year, 2025):
+    for month in range(7, 13):
+        month_str = f'{month:02d}'
+        ds.append(datasets.load_dataset('RealTimeData/bbc_news_alltime', f'{year}-{month_str}'))
 
 
-btext=[d['text'] for d in data]
+for month in range(1, 7):
+    month_str = f'{month:02d}'
+    ds.append(datasets.load_dataset('RealTimeData/bbc_news_alltime', f'2025-{month_str}'))
 
-ftext=compute.filterize(btext)
+
+texts = [ds[i]['train']['content'] for i in range(len(ds))]
+textflat=[]
+for tl in texts: textflat+=tl
+
+ftext=compute.filterize(textflat)
 
 splitlen=args.splitlen
 ftext_elongated=[]
@@ -65,6 +74,8 @@ ftext_sorted=[ftext_elongated[i][s:] for i,s in zip(indsort[:nsamples],starts)]
 #perform the analysis 
 batchsize=args.batchsize
 dataloader=DataLoader(ftext_sorted,batch_size=batchsize)
+print('number of samples:', len(ftext_sorted))
+print('len dataloader:', len(dataloader))
 
 compute.computer(savedir=args.savedir,
                  shapecut=args.shapecut,
@@ -72,8 +83,7 @@ compute.computer(savedir=args.savedir,
                  batchsize=batchsize, 
                  model=model, 
                  tokenizer=tokenizer,
-                 device=device, 
-                 printevery=10)
+                 device=device)
 
 
 

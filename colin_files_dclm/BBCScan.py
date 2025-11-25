@@ -1,12 +1,12 @@
-from transformers import AutoModelForCausalLM, AutoTokenizer
+# from transformers import AutoModelForCausalLM, AutoTokenizer
 import torch
 from torch.utils.data import DataLoader
 import numpy as np
 import glob as glob
+import datasets
 import compute
-
-import json
 import argparse
+import utils
 
 device = "cuda" if torch.cuda.is_available() else "cpu"
 
@@ -20,33 +20,43 @@ parser.add_argument('--nsamples',type=int)
 parser.add_argument('--seed', type=int,default=223291)
 parser.add_argument('--batchsize', type=int,default=2)
 parser.add_argument('--shapecut',type=int)
+parser.add_argument('--begin_year',type=int,default=2023) #dclm 1B data goes to 2022
 args=parser.parse_args()
 
-#load the model
-if args.revision=='skip':
-    model = AutoModelForCausalLM.from_pretrained(args.model, device_map='cuda')  
-else:
-    model = AutoModelForCausalLM.from_pretrained(args.model, device_map='cuda',revision=args.revision)
+begin_year = args.begin_year
 
-tokenizer = AutoTokenizer.from_pretrained(args.model,device_map='cuda')
+# #load the model
+# if args.revision=='skip':
+#     model = AutoModelForCausalLM.from_pretrained(args.model, device_map='cuda')  
+# else:
+#     model = AutoModelForCausalLM.from_pretrained(args.model, device_map='cuda',revision=args.revision)
 
-tokenizer.pad_token=tokenizer.eos_token
+# tokenizer = AutoTokenizer.from_pretrained(args.model,device_map='cuda')
+
+# tokenizer.pad_token = tokenizer.eos_token
+
+# load my model
+model, tokenizer, seqlen = utils.load_dclm_model(device)
 
 #load the text data
 
-files=['/scratch/gpfs/DATASETS/hugging_face/c4/en/c4-train.00217-of-01024.json',
-       '/scratch/gpfs/DATASETS/hugging_face/c4/en/c4-train.00023-of-01024.json',
-       '/scratch/gpfs/DATASETS/hugging_face/c4/en/c4-train.00345-of-01024.json']
-
-data=[]
-for file in files:
-    with open(file,'r') as f:
-        data+=[json.loads(l) for l in f]
+ds = []
+for year in range(begin_year, 2025):
+    for month in range(1, 13):
+        month_str = f'{month:02d}'
+        ds.append(datasets.load_dataset('RealTimeData/bbc_news_alltime', f'{year}-{month_str}'))
 
 
-btext=[d['text'] for d in data]
+for month in range(1, 7):
+    month_str = f'{month:02d}'
+    ds.append(datasets.load_dataset('RealTimeData/bbc_news_alltime', f'2025-{month_str}'))
 
-ftext=compute.filterize(btext)
+
+texts = [ds[i]['train']['content'] for i in range(len(ds))]
+textflat=[]
+for tl in texts: textflat+=tl
+
+ftext=compute.filterize(textflat)
 
 splitlen=args.splitlen
 ftext_elongated=[]
@@ -72,8 +82,7 @@ compute.computer(savedir=args.savedir,
                  batchsize=batchsize, 
                  model=model, 
                  tokenizer=tokenizer,
-                 device=device, 
-                 printevery=10)
+                 device=device)
 
 
 

@@ -42,23 +42,15 @@ tokenizer.pad_token = tokenizer.eos_token
 
 #load the text data
 
-ds = []
-for year in range(2017,2025):
-    for month in range(1, 13):
-        month_str = f'{month:02d}'
-        ds.append(datasets.load_dataset('RealTimeData/bbc_news_alltime', f'{year}-{month_str}'))
+print('here0')
 
+wiki=datasets.load_dataset('wikimedia/wikipedia','20231101.en')
 
-for month in range(1, 7):
-    month_str = f'{month:02d}'
-    ds.append(datasets.load_dataset('RealTimeData/bbc_news_alltime', f'2025-{month_str}'))
+print('here1')
+btext=[x for x in wiki['train']['text'][:100000]]#[x['text'] for x in wiki['train'][:100000]]
+print('here2')
 
-
-texts = [ds[i]['train']['content'] for i in range(len(ds))]
-textflat=[]
-for tl in texts: textflat+=tl
-
-ftext=compute.filterize(textflat)
+ftext=compute.filterize(btext)
 
 splitlen=args.splitlen
 ftext_elongated=[]
@@ -72,6 +64,15 @@ buffer=args.buffer
 rng=np.random.default_rng(args.seed)
 starts=rng.choice(buffer,size=nsamples)
 ftext_sorted=[ftext_elongated[i][s:] for i,s in zip(indsort[:nsamples],starts)]
+
+
+# lengths=np.array([len(t) for t in ftext])
+# indsort=np.flip(np.argsort(lengths))
+# nsamples=args.nsamples
+# buffer=args.buffer
+# rng=np.random.default_rng(args.seed)
+# starts=rng.choice(buffer,size=nsamples)
+# ftext_sorted=[ftext[i][s:args.splitlen] for i,s in zip(indsort[:nsamples],starts)]
 
 
 #perform the analysis 

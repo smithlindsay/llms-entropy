@@ -31,6 +31,9 @@ parser.add_argument('--shapecut',type=int)
 parser.add_argument('--texttype',type=str)
 args=parser.parse_args()
 
+#load the text data
+booksum=datasets.load_dataset("kmfoda/booksum")
+
 #load the model
 if args.revision=='skip':
     model = AutoModelForCausalLM.from_pretrained(args.model, device_map='cuda')  
@@ -41,22 +44,6 @@ tokenizer = AutoTokenizer.from_pretrained(args.model,device_map='cuda')
 
 
 tokenizer.pad_token = tokenizer.eos_token
-#load the text data
-
-# ds = []
-# for year in range(2017,2025):
-#     for month in range(1, 13):
-#         month_str = f'{month:02d}'
-#         ds.append(datasets.load_dataset('RealTimeData/bbc_news_alltime', f'{year}-{month_str}'))
-
-
-# for month in range(1, 7):
-#     month_str = f'{month:02d}'
-#     ds.append(datasets.load_dataset('RealTimeData/bbc_news_alltime', f'2025-{month_str}'))
-
-
-booksum=datasets.load_dataset("kmfoda/booksum")
-
 
 # texts = [ds[i]['train']['content'] for i in range(len(ds))]
 # textflat=[]

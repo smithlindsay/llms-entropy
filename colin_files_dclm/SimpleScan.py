@@ -1,12 +1,20 @@
 from transformers import AutoModelForCausalLM, AutoTokenizer
 import torch
+import torch.nn.functional as F
 from torch.utils.data import DataLoader
 import numpy as np
+import string
 import glob as glob
+import datasets
 import compute
 
+import gzip
 import json
+import pickle as pkl
 import argparse
+
+import collections as collect
+import os
 
 device = "cuda" if torch.cuda.is_available() else "cpu"
 
@@ -30,21 +38,13 @@ else:
 
 tokenizer = AutoTokenizer.from_pretrained(args.model,device_map='cuda')
 
-tokenizer.pad_token=tokenizer.eos_token
 
-#load the text data
+tokenizer.pad_token = tokenizer.eos_token
 
-files=['/scratch/gpfs/DATASETS/hugging_face/c4/en/c4-train.00217-of-01024.json',
-       '/scratch/gpfs/DATASETS/hugging_face/c4/en/c4-train.00023-of-01024.json',
-       '/scratch/gpfs/DATASETS/hugging_face/c4/en/c4-train.00345-of-01024.json']
+#load the data
+wikisimple=datasets.load_dataset('wikimedia/wikipedia','20231101.simple')
 
-data=[]
-for file in files:
-    with open(file,'r') as f:
-        data+=[json.loads(l) for l in f]
-
-
-btext=[d['text'] for d in data]
+btext=[x['text'] for x in wikisimple['train']]
 
 ftext=compute.filterize(btext)
 

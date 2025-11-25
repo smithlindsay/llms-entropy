@@ -30,6 +30,10 @@ parser.add_argument('--batchsize', type=int,default=2)
 parser.add_argument('--shapecut',type=int)
 args=parser.parse_args()
 
+#load the text data
+
+imbd=datasets.load_dataset("stanfordnlp/imdb")
+
 #load the model
 if args.revision=='skip':
     model = AutoModelForCausalLM.from_pretrained(args.model, device_map='cuda')  

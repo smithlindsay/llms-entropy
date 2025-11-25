@@ -18,7 +18,7 @@ def filterize(textlist , safeset=safeset):
 
     return filtered
 
-def computer(savedir,shapecut,dataloader,batchsize,model, tokenizer, device, printevery=1):
+def computer(savedir,shapecut,dataloader,batchsize,model, tokenizer, device):
 
     if not os.path.exists(savedir):
         os.makedirs(savedir)
@@ -28,13 +28,15 @@ def computer(savedir,shapecut,dataloader,batchsize,model, tokenizer, device, pri
         if not os.path.exists(directory):
             os.makedirs(directory)
 
-    smallin=tokenizer(['a'],return_tensors='pt',return_token_type_ids=False).to(device)
-    smallout=model(**smallin)
-
     safelist=sorted(safeset)  
 
     nrows=len(safelist)
-    ncols=smallout['logits'].shape[-1]
+    if hasattr(model, "config") and hasattr(model.config, "vocab_size"):
+        ncols=model.config.vocab_size
+    elif hasattr(model, "lm_head"):
+        ncols=model.lm_head.out_features
+    else:
+        ncols=len(tokenizer)
 
     rinds=[]
     cinds=[]
@@ -53,32 +55,34 @@ def computer(savedir,shapecut,dataloader,batchsize,model, tokenizer, device, pri
 
     smat=torch.sparse_coo_tensor(indices=(rinds,cinds),values=np.ones(len(rinds)),size=(nrows,ncols),dtype=torch.float).to(device)
 
-    indx1=np.repeat([np.arange(batchsize)],shapecut-1,axis=0).T
-    indx2=np.repeat([np.arange(shapecut-1)],batchsize,axis=0)
-
+    print("len dataloader:", len(dataloader))
     with torch.no_grad():
-        i=0
-        for d in tqdm(dataloader): 
+        for i, d in tqdm(enumerate(dataloader)): 
             inputs = tokenizer(d, return_tensors='pt', return_token_type_ids=False, padding='max_length', max_length=shapecut,truncation=True).to(device)  
-            outputs=model(**inputs)
+            input_ids = inputs['input_ids']
+            targets = input_ids[:, 1:].contiguous()
+            model_in = input_ids[:, :-1].contiguous()
+            logits, _ = model(model_in, targets)
+            batch_cur, seq_len = logits.shape[:2]
             
-            attn=inputs['attention_mask'].cpu().numpy()
-            tok=inputs['input_ids'].cpu().numpy()
+            attn=inputs['attention_mask'][:, 1:].cpu().numpy()
+            tok=targets.cpu().numpy()
 
-            logits=outputs.logits
+            # logits=outputs.logits
             parr=F.softmax(logits,dim=-1)
-            # make sure parr and smat are same dtype
-            parr=parr.to(smat.dtype)
 
-            preprobs=smat.mm(parr.permute(2,1,0).reshape(ncols,-1)).view(nrows,parr.shape[1],parr.shape[0]).permute(2,1,0) #break apart, use view vs reshape
+            preprobs=smat.mm(parr.permute(2,1,0).reshape(ncols,-1)).view(nrows,seq_len,batch_cur).permute(2,1,0) #break apart, use view vs reshape
             probs=(preprobs/preprobs.sum(axis=-1,keepdim=True)).cpu()
 
             pleak=preprobs.sum(axis=-1).cpu().numpy()
             ent=-torch.sum(probs*torch.log2(probs+1e-10),axis=-1).numpy()
             
             charnext=lookup[tok]
-            pselect=probs[indx1,indx2,charnext[:,1:]]
-            codelength=-np.log2(pselect).numpy() 
+            probs_np=probs.numpy()
+            batch_index=np.arange(batch_cur)[:,None]
+            time_index=np.arange(seq_len)[None,:]
+            pselect=probs_np[batch_index,time_index,charnext]
+            codelength=-np.log2(pselect) 
             
             tlens=lengths[tok]
 
@@ -92,8 +96,8 @@ def computer(savedir,shapecut,dataloader,batchsize,model, tokenizer, device, pri
 
             #save all data
             for fname,tensor in zip([aname,ename,tname,cname, lname, pname],[attn,ent,tok,codelength, tlens, pleak]):
-                with open(fname,'wb') as f:
-                    np.save(fname, tensor)
-            # if (i % printevery) ==0:
-            #     print(i)
-            i+=1
+                np.save(fname, tensor)
+            
+
+
+

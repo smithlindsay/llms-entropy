@@ -30,7 +30,7 @@ n_head = 16
 n_embd = 2048
 z_loss = 1e-4
 
-# load model checkpoint and see if inference output is reasonable
+# load model checkpoint
 checkpoint = torch.load(model_ckpt, map_location=device)
 checkpoint_model_args = checkpoint['model_args']
 model_args = dict(n_layer=n_layer, n_head=n_head, n_embd=n_embd, block_size=block_size,

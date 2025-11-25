@@ -30,6 +30,10 @@ parser.add_argument('--batchsize', type=int,default=2)
 parser.add_argument('--shapecut',type=int)
 args=parser.parse_args()
 
+
+
+gpc=datasets.load_dataset("biglam/gutenberg-poetry-corpus")
+
 #load the model
 if args.revision=='skip':
     model = AutoModelForCausalLM.from_pretrained(args.model, device_map='cuda')  
@@ -41,10 +45,6 @@ tokenizer = AutoTokenizer.from_pretrained(args.model,device_map='cuda')
 #load the text data
 
 tokenizer.pad_token = tokenizer.eos_token
-
-gpc=datasets.load_dataset("biglam/gutenberg-poetry-corpus")
-
-
 
 btext=[]
 cid=gpc['train'][0]['gutenberg_id']
