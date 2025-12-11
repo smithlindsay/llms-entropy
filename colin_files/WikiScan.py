@@ -6,7 +6,7 @@ import numpy as np
 import string
 import glob as glob
 import datasets
-import compute
+import compute_combined as compute
 
 import gzip
 import json

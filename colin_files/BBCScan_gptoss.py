@@ -4,7 +4,7 @@ from torch.utils.data import DataLoader
 import numpy as np
 import glob as glob
 import datasets
-import compute
+import compute_combined as compute
 import argparse
 
 device = "cuda" if torch.cuda.is_available() else "cpu"

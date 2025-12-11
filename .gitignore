@@ -5,3 +5,4 @@ slurmfiles/
 *.pdf
 *.png
 *.npy
+plotting_data/

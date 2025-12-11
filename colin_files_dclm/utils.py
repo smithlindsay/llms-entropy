@@ -14,7 +14,7 @@ from model import GPT, GPTConfig
 # model loading function
 def load_dclm_model(device):
     out_dir = '/scratch/gpfs/WBIALEK/ls1546/gpt-circuits/out/shard1_m1337_d1337/'
-    model_ckpt = f'{out_dir}1756086913.6403742_ckpt_47000.pt'
+    model_ckpt = f'{out_dir}shard1_m1337_d1337_ckpt_47000.pt'
 
     # model
     dropout = 0.0

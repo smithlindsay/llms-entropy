@@ -3,7 +3,7 @@ import torch
 from torch.utils.data import DataLoader
 import numpy as np
 import glob as glob
-import compute
+import compute_combined as compute
 
 import json
 import argparse

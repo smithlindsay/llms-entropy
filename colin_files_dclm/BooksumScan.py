@@ -1,20 +1,12 @@
-from transformers import AutoModelForCausalLM, AutoTokenizer
 import torch
-import torch.nn.functional as F
 from torch.utils.data import DataLoader
 import numpy as np
-import string
 import glob as glob
 import datasets
-import compute
-
-import gzip
-import json
-import pickle as pkl
+import compute_combined_dclm as compute
 import argparse
+import utils
 
-import collections as collect
-import os
 
 device = "cuda" if torch.cuda.is_available() else "cpu"
 
@@ -31,16 +23,9 @@ parser.add_argument('--shapecut',type=int)
 parser.add_argument('--texttype',type=str)
 args=parser.parse_args()
 
-#load the model
-if args.revision=='skip':
-    model = AutoModelForCausalLM.from_pretrained(args.model, device_map='cuda')  
-else:
-    model = AutoModelForCausalLM.from_pretrained(args.model, device_map='cuda',revision=args.revision)
+# load my model
+model, tokenizer, seqlen = utils.load_dclm_model(device)
 
-tokenizer = AutoTokenizer.from_pretrained(args.model,device_map='cuda')
-
-
-tokenizer.pad_token = tokenizer.eos_token
 #load the text data
 
 # ds = []
