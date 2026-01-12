@@ -12,9 +12,10 @@ from model import GPT, GPTConfig
 
 
 # model loading function
-def load_dclm_model(device):
+def load_dclm_model(device, checkpoint=47000):
     out_dir = '/scratch/gpfs/WBIALEK/ls1546/gpt-circuits/out/shard1_m1337_d1337/'
-    model_ckpt = f'{out_dir}shard1_m1337_d1337_ckpt_47000.pt'
+    model_ckpt = f'{out_dir}shard1_m1337_d1337_ckpt_{checkpoint}.pt'
+    print(f'loading model {model_ckpt}')
 
     # model
     dropout = 0.0

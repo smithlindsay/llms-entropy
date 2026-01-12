@@ -6,3 +6,12 @@ slurmfiles/
 *.png
 *.npy
 plotting_data/
+*.err
+*.out
+*.slurm
+.ipynb_checkpoints
+*.pkl
+*.json
+*.npz
+colin_files/data/
+colin_files_dclm/data/
